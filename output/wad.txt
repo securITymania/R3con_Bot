@@ -1,0 +1,19 @@
+{
+    "https://www.eur.nl/": [
+        {
+            "type": "cms", 
+            "app": "Drupal", 
+            "ver": "8"
+        }, 
+        {
+            "type": "tag-managers", 
+            "app": "Google Tag Manager", 
+            "ver": null
+        }, 
+        {
+            "type": "programming-languages", 
+            "app": "PHP", 
+            "ver": null
+        }
+    ]
+}
