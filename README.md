@@ -36,7 +36,7 @@ Critical File Found
 Open-Redirection Check
 
 # Installation:
-git clone https://github.com/narenndhra/R3con_Bot.git
+git clone https://github.com/securitymania/R3con_Bot.git
 
 cd R3con_Bot
 
