@@ -334,7 +334,11 @@ try:
   sub1 = data["subdomains"]
 except:
   sub1 = []
-sub2 = data["domain_siblings"]
+try:
+ sub2 = data["domain_siblings"]
+except:
+ sub2 = []
+
 subdomains = sub1 + sub2
 
 t = Terminal()
