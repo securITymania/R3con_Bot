@@ -5,6 +5,8 @@ import requests
 import time
 import re
 import sys
+import optparse
+import dns.resolver
 import urllib.error
 from urllib.parse import urljoin
 from urllib import parse
@@ -12,6 +14,17 @@ from urllib.request import urlopen, Request
 from threading import Thread
 from queue import Queue
 from blessings import Terminal
+
+parser = optparse.OptionParser()
+parser.add_option("-d","--domain", dest="hostname", help="Give the domain you want scan without 'https://'")
+parser.add_option("-t","--nmap_tcp", dest="nmap_tcp", help="Nmap TCP Scan type options from [1-4]             1.Fast scan[Top 100 port scan]                      2.Fast scan with service,os & version detection         3.Intense scan with service,os & version detection     4.All port scan with service,os & version detection")
+parser.add_option("-u","--nmap_udp", dest="nmap_udp", help="Nmap UDP Scan type options from [1-4]             1.Fast scan[Top 100 port scan]                      2.Fast scan with service,os & version detection         3.Intense scan with service,os & version detection        4.All port scan with service,os & version detection")
+
+(options, arguments) = parser.parse_args()
+
+hostname = options.hostname
+nmap_tcp = options.nmap_tcp
+nmap_udp = options.nmap_udp
 
 t = Terminal()
 
@@ -27,13 +40,25 @@ print (t.bold_bright_yellow("""
                 		|__/  |__/ \______/  \_______/ \______/ |__/  |__/      |__/   |__/      \_______/|__/ |__/ |__/ \_______/ \_____/\___/  \______/ |__/      |__/  \__/
                                                                                                                                               
 """))
-print (t.bold_bright_cyan("[#] Created By   : ES"))
-print (t.bold_bright_cyan("[#] Tool Support : R3con in Depth"))
-print (t.bold_bright_cyan("[#] Version      : 1.0")) 
-print("\n")
-hostname = input("[+] Enter the website you need to scan:~# ")
+print (t.bold_bright_cyan("[#] Created By   : Mr.Robot"))
+print (t.bold_bright_cyan("[#] Tool Support : R3con in Depth and Fully Automated"))
+print (t.bold_bright_cyan("[#] Version      : 1.2")) 
 
+print("\n")
+print (t.bold_bright_red("[#]Hold on Apache Server is starting.....!"))
+os.system("service apache2 start")
+os.system("mkdir /var/www/html/output")
+os.system("mkdir /var/www/html/output/wad")
+os.system("mkdir /var/www/html/output/nmap")
 os.system("clear")
+
+#Scan Information
+
+def scan_info(module,target_host):
+    modules = ('Whois','SSLScan','dns_enum','Nmap_TCP','Nmap_UDP','Robots.txt')
+    f = open('/var/www/html/output/'+modules[module]+'.html', 'w')
+    f.write("<h3>"+modules[module]+ " Scan Result: "+hostname+"</h3>")
+    f.close()
 
 #Printing target website
 print (t.bold_bright_green("""
@@ -44,7 +69,7 @@ print (t.bold_bright_green("""
 print (t.bold_bright_cyan("[+] Target Website: ") + ("https://" + hostname))
 
 
-#IP Finding
+#IP Finding 
 print (t.bold_bright_green("""
 ====================================================================================
 #                                  IP ADDRESS INFO                                 #
@@ -64,11 +89,17 @@ print (t.bold_bright_green("""
 ====================================================================================
 """))
 try:
-	print (t.bold_bright_cyan("[*] Usage: whois [IP]"))
-	print("\n")
-	cwd = os.getcwd()
-	os.system("whois " + IP  + " > " + cwd + "/output/whois.txt")
-	os.system("cat " + cwd + "/output/whois.txt | grep 'NetRange\|CIDR\|inetnum\|route\|Organization\|org\|netname\|source\|OrgTechPhone\|phone\|OrgTechEmail\|e-mail\|Comment\|remarks'")
+    print (t.bold_bright_cyan("[*] Usage: whois [IP]"))
+    print("\n")
+    cwd = os.getcwd()
+    os.system("whois " + IP  + " > " + "/var/www/html/output/whois.txt")
+    os.system("cat /var/www/html/output/whois.txt | grep 'NetRange\|CIDR\|inetnum\|route\|Organization\|org\|netname\|source\|OrgTechPhone\|phone\|OrgTechEmail\|e-mail\|Comment\|remarks' " + " > " + "/var/www/html/output/whois1.txt")
+    os.system("cat /var/www/html/output/whois1.txt")
+    scan_info(0,hostname)
+    os.system("cat /var/www/html/output/whois1.txt |aha --word-wrap >> /var/www/html/output/Whois.html")
+    print("\n")
+    change = cwd + "/input/webscreenshot.py"
+    os.system("python " + change + " 127.0.0.1/output/Whois.html" + " -o " + cwd + "/output/screenshot/"+hostname)
 
 except Exception as e:
 	print(e)
@@ -83,12 +114,47 @@ print (t.bold_bright_green("""
 try:
 	print (t.bold_bright_cyan("[*] Usage: wad -u [Domain]"))
 	cwd = os.getcwd()
-	whatweb = os.system("wad -u" + "https://" + hostname + " > " + cwd + "/output/wad.txt")
+	socket.setdefaulttimeout(60 * 60)
+	os.system("wad -u" + "http://" + hostname + " > " + "/var/www/html/output/wad/wad.txt")
 	print("\n")
-	os.system("cat " + cwd + "/output/wad.txt | grep 'app\|ver' ")
+	os.system("""cat /var/www/html/output/wad/wad.txt | egrep '"app":|"ver":'  >  /var/www/html/output/wad/wad1.txt""")
+	os.system("cat /var/www/html/output/wad/wad1.txt")
+	print("\n")
+	change = cwd + "/input/webscreenshot.py"
+	os.system("python " + change + " 127.0.0.1/output/wad/wad.txt" + " -o " + cwd + "/output/screenshot/"+hostname)
 	
 except Exception as e:
 	print(e)
+
+#Exploit Search
+print (t.bold_bright_green("""
+====================================================================================
+#                                     Exploit Search                               #
+====================================================================================
+"""))
+print (t.bold_bright_cyan("[*] Usage: searchsploit [(Application) (version)]"))
+os.system("""sed 's/ //g' /var/www/html/output/wad/wad1.txt > /var/www/html/output/wad/wad2.txt""")
+os.system("""sed 's/"app":/ /g; s/"ver":/ /g' /var/www/html/output/wad/wad2.txt > /var/www/html/output/wad/wad3.txt""")
+os.system("""sed -r ':r; s/("[^",]+),([^",]*)/\1 \2/g; tr; s/"//g' /var/www/html/output/wad/wad3.txt  > /var/www/html/output/wad/wad4.txt""")
+os.system("""sed 's/,//' /var/www/html/output/wad/wad4.txt > /var/www/html/output/wad/wad5.txt""")
+os.system("""sed '/^$/d' /var/www/html/output/wad/wad5.txt > /var/www/html/output/wad/wad6.txt""")
+os.system("""awk 'NR%2{printf "%s ",$0;next;}1' /var/www/html/output/wad/wad6.txt > /var/www/html/output/wad/wad7.txt""")
+os.system("""sed 's/.*null*/ /' /var/www/html/output/wad/wad7.txt > /var/www/html/output/wad/wad8.txt""")
+
+with open("/var/www/html/output/wad/wad8.txt", "r") as f:
+	search =[i.strip() for i in f.read().split("\n")]
+	f.close()
+
+for i in search:
+	if i != '':
+		print("\n")
+		print (t.bold_bright_red("Exploit Searching For: "),i)
+		print("\n")
+		os.system("searchsploit " + i)
+
+if i == '':
+    print("\n")
+    print(t.bold_bright_red("No Application version were found with wad module "))
 
 
 #Secure Response Headers Missing Scan
@@ -99,60 +165,82 @@ print (t.bold_bright_green("""
 """))
 print (t.bold_bright_cyan("[*] Usage: https://securityheaders.com/?q=[Domain]&followRedirects=on"))
 print("\n")
+
+cwd = os.getcwd()
+
+def create_poc(url):
+    ''' create HTML page of given URL '''
+
+    code = """
+<html>
+   <head><title>Clickjack test page</title></head>
+   <body>
+     <p>"""+hostname+""" is vulnerable to clickjacking!</p>
+     <iframe src="{}" width="900" height="900"></iframe>
+   </body>
+</html>
+    """.format(url)
+
+    with open("/var/www/html/output/" + "clickjacking" + ".html", "w") as f:
+        f.write(code)
+        f.close()
+
 try:
-	r = requests.get("http://" + hostname)
-	headers = r.headers 
+    url = "http://" + hostname
+    r = requests.get(url)
+    headers = r.headers 
 
-	if 'Server' in headers:
-		print (t.bold_bright_cyan("[+] Server                           :  ") + r.headers['Server'])
+    host_headers = []
 
-	if 'X-Powered-By' in headers:
-		print (t.bold_bright_cyan("[+] Backend Technology               :  ") + r.headers['X-Powered-By'])
+    for key,val in headers.items():
+       print('{t.green}{:35} : {t.white}{}'.format(key, val, t=t))
+       #print (t.bold_bright_green("[+] "+ response_headers))
+       host_headers.append(key)
 
-	if 'Strict-Transport-Security' in headers:
-		print (t.bold_bright_cyan("[+] Strict-Transport-Security        :  ") + r.headers['Strict-Transport-Security'])
 
-	if 'Expect-CT' in headers:
-		print (t.bold_bright_cyan("[+] Expect-CT                        :  ") + r.headers['Expect-CT'])
+    if 'X-Frame-Options' not in headers:
+        print("\n")
+        print(t.bold_bright_yellow("********   Clickjacking Test   *******"))
+        print("\n")
+        create_poc(url)
+        print (t.bold_bright_green("[+] X-Frame-Options                  :  ") + ("Website is vulnerable! to clickjacking.File has been saved to /var/www/output/clickjacking.html"))
+        print("\n")
+        change = cwd + "/input/webscreenshot.py"
+        os.system("python " + change + " 127.0.0.1/output/clickjacking.html" + " -o " + cwd + "/output/screenshot" + hostname)
 
-	if 'Public-Key-Pins' in headers:
-  		print (t.bold_bright_cyan("[+] Public-Key-Pins                  :  ") + r.headers['Public-Key-Pins'])
-	 
-	if 'X-Frame-Options' in headers:
-		print (t.bold_bright_cyan("[+] X-Frame-Options                  :  ") + r.headers['X-Frame-Options'])
+   
+    print("\n")
+    print(t.bold_bright_yellow("********    HTTPS BYPASS    *******"))
+    print("\n")
 
-	if 'X-XSS-Protection' in headers:
-		print (t.bold_bright_cyan("[+] X-XSS-Protection                 :  ") + r.headers['X-XSS-Protection'])
+    try:
+        url = "http://" + hostname
+        response = requests.get(url)
+        print(t.bold_bright_green("Requested Url" + ": "),url)
+        print("\n")
 
-	if 'Cache-Control' in headers:
-		print (t.bold_bright_cyan("[+] Cache-Control                    :  ") + r.headers['Cache-Control'])
+        if len(response.history) > 0:
+            if response.history[0].status_code == 301 or 302:
+                print(t.bold_bright_green("[+]HTTPS BYPASS Not Possible [" + str(response.status_code) + " ] " + " : "),response.url)
+        else:
+            print(t.bold_bright_red("[+]HTTPS BYPASSED [" + str(response.status_code) + " ] " + " : "),response.url)
 
-	if 'Pragma' in headers:
-  		print (t.bold_bright_cyan("[+] Pragma                           :  ") + r.headers['Pragma'])
+    except Exception as e:
+        print(e)
 
-	if 'Access-Control-Allow-Origin' in headers: 
-		print (t.bold_bright_cyan("[+] Access-Control-Allow-Origin      :  ") + r.headers['Access-Control-Allow-Origin'])
+        
 
-	if 'Access-Control-Allow-Credentials' in headers:
-		print (t.bold_bright_cyan("[+] Access-Control-Allow-Credentials :  ") + r.headers['Access-Control-Allow-Credentials'])  
-
-	if 'Access-Control-Allow-Methods' in headers:
-		print (t.bold_bright_cyan("[+] Access-Control-Allow-Methods     :  ") + r.headers['Access-Control-Allow-Methods'])
-
-	if 'Content-Security-Policy' in headers:
-		print (t.bold_bright_cyan("[+] Content-Security-Policy          :  ") + r.headers['Content-Security-Policy'])
-
-	if 'Last-Modified' in headers:
-		print (t.bold_bright_cyan("[+] Last-Modified                    :  ") + r.headers['Last-Modified'])
-
-	if 'Allow' in headers:
-		print (t.bold_bright_cyan("[+] Allow                            :  ") + r.headers['Allow'])
-
-	if 'Set-Cookie' in headers:
-		print (t.bold_bright_cyan("[+] Set-Cookie                       :  ") + r.headers['Set-Cookie'])
+    secure_response_headers = ['Strict-Transport-Security', 'Expect-CT', 'X-Frame-Options', 'X-XSS-Protection', 'Cache-Control', 'Pragma' ,'Content-Security-Policy', 'Set-Cookie']
+    print("\n")
+    print(t.bold_bright_yellow("******* Missing Response Headers *******"))
+    print("\n")
+    for i in secure_response_headers:
+        if i not in host_headers:
+            print(t.bold_bright_red("[-] " + i ))
 
 except Exception as e:
-	print(e)
+    print(e)
+
 
 #Weak Cipher Scan
 print (t.bold_bright_green("""
@@ -161,9 +249,36 @@ print (t.bold_bright_green("""
 ====================================================================================
 """))
 try:
-	print (t.bold_bright_cyan("[*] Usage: sslscan --no-fallback [Domain]"))
-	print("\n")
-	os.system("sslscan --no-fallback " + hostname )
+    print (t.bold_bright_cyan("[*] Usage: sslscan --no-fallback [Domain]"))
+    print("\n")
+    os.system("sslscan --no-fallback " + hostname + " > " + "/var/www/html/output/sslscan.txt")
+    os.system("cat /var/www/html/output/sslscan.txt")
+    scan_info(1,hostname)
+    print("\n")
+    os.system("cat /var/www/html/output/sslscan.txt|aha --word-wrap --black >> /var/www/html/output/SSLScan.html")
+    print("\n")
+    change = cwd + "/input/webscreenshot.py"
+    os.system("python " + change + " 127.0.0.1/output/SSLScan.html" + " -o " + cwd + "/output/screenshot/"+hostname)
+	
+except Exception as e:
+	print(e)
+
+#DNS Enumeration
+print (t.bold_bright_green("""
+====================================================================================
+#                                     DNS Enumeration                              #
+====================================================================================
+"""))
+try:
+    print (t.bold_bright_cyan("[*] Usage: dnsenum --enum [Domain]"))
+    print("\n")
+    os.system("dnsenum --enum " + hostname + " > " + "/var/www/html/output/dns_enum.txt")
+    os.system("cat /var/www/html/output/dns_enum.txt")
+    scan_info(2,hostname)
+    os.system("cat /var/www/html/output/dns_enum.txt|aha --word-wrap >> /var/www/html/output/dns_enum.html")
+    print("\n")
+    change = cwd + "/input/webscreenshot.py"
+    os.system("python " + change + " 127.0.0.1/output/dns_enum.html" + " -o " + cwd + "/output/screenshot/"+hostname)
 	
 except Exception as e:
 	print(e)
@@ -174,13 +289,25 @@ print (t.bold_bright_green("""
 #                                    Nmap TCP                                      #
 ====================================================================================
 """))
-print (t.bold_bright_cyan("[*] Usage: nmap -Pn -sV -sC -T4 -F --version-intensity 0 [IP]"))
+print (t.bold_bright_cyan("[*] Usage: nmap [Options] [IP]"))
 print("\n")
-try:
-	os.system("nmap -Pn -sV -sC -T4 -F --version-intensity 0 " + IP)
 
-except Exception as e:
-	print(e)
+def nmap_scan(nmap_tcp):
+    
+    nmap_commands = ["","nmap -Pn -F -T4 ","nmap -Pn -F -sV -O -T4 ","nmap -Pn -sC -sV -O -T4 ","nmap -Pn -T4 -A -p 1-49151 "]
+    try:
+        os.system(nmap_commands[nmap_tcp] + IP + " > " + "/var/www/html/output/nmap_tcp.txt" )
+        os.system("cat " + "/var/www/html/output/nmap_tcp.txt " + "| egrep -i 'state|open|filtered' " + " > " + "/var/www/html/output/nmap_tcp1.txt")
+        os.system("cat " + "/var/www/html/output/nmap_tcp1.txt")
+        scan_info(3,hostname)
+        os.system("cat /var/www/html/output/nmap_tcp.txt|aha --word-wrap >> /var/www/html/output/Nmap_TCP.html")
+        print("\n")
+        change = cwd + "/input/webscreenshot.py"
+        os.system("python " + change + " 127.0.0.1/output/Nmap_TCP.html" + " -o " + cwd + "/output/screenshot/"+hostname)
+    except Exception as e:
+        print(e)
+
+nmap_scan(int(nmap_tcp))
 
 #Nmap UDP
 print (t.bold_bright_green("""
@@ -188,14 +315,25 @@ print (t.bold_bright_green("""
 #                                    Nmap UDP                                      #
 ====================================================================================
 """))
-print (t.bold_bright_cyan("[*] Usage: nmap -Pn -sV -sU -sC -T4 -F --version-intensity 0 [IP]"))
+print (t.bold_bright_cyan("[*] Usage: nmap [Options] [IP]"))
 print("\n")
-try:
-	os.system("nmap -Pn -sU -sV -sC -T4 -F --version-intensity 0 " + IP)
 
-except Exception as e:
-	print(e) 
+def nmap_udp_scan(nmap_udp):
 
+    nmap_udp_commands = ["","nmap -Pn -F -T4 -sU ","nmap -Pn -F -sV -sU -O -T4 ","nmap -Pn -sC -sV -sU -O -T4 ","nmap -Pn -T4 -sU -A -p 1-49151 "]
+    try:
+        os.system(nmap_udp_commands[nmap_udp] + IP + " > " + "/var/www/html/output/nmap_udp.txt" )
+        os.system("cat " + "/var/www/html/output/nmap_udp.txt " + "| egrep -i 'state|open|filtered' " + " > " + "/var/www/html/output/nmap_udp1.txt")
+        os.system("cat " + "/var/www/html/output/nmap_udp1.txt")
+        scan_info(4,hostname)
+        os.system("cat /var/www/html/output/nmap_udp.txt|aha --word-wrap --black >> /var/www/html/output/Nmap_UDP.html")
+        print("\n")
+        change = cwd + "/input/webscreenshot.py"
+        os.system("python " + change + " 127.0.0.1/output/Nmap_UDP.html" + " -o " + cwd + "/output/screenshot/" + hostname)
+    except Exception as e:
+        print(e)
+
+nmap_udp_scan(int(nmap_udp))
 
 #Robots.txt
 print (t.bold_bright_green("""
@@ -203,26 +341,31 @@ print (t.bold_bright_green("""
 #                                    ROBOTS_TXT INFO                               #
 ====================================================================================
 """))
-time.sleep(5)
+time.sleep(1)
 concurrent = 10
 
 def robot():
 	while True:
-		final_url = "https://" + hostname + q.get()
+		final_url = "http://" + hostname + q.get()
 		response = requests.get(final_url)
-		robot1(response.status_code,final_url)
+		robot1(response.status_code,final_url,response.url)
 		q.task_done()
 			
 
-def robot1(status,url):
+def robot1(status,url,redirect):
 	global t
 	
 	if status == 200:
-		time.sleep(1)
-		print (t.bold_bright_green("[+]Status_Code [" + str(status) + "] "  + "  : "), url)
+		time.sleep(0.5)
+		print (t.bold_bright_yellow("[+]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "),redirect )
+	elif status == 401:
+		time.sleep(0.5)
+		print (t.bold_bright_red("[+]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "),redirect )
+	if status == 403:
+		time.sleep(0.5)
+		print (t.bold_bright_red("[+]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "),redirect )
 	else:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
+		pass
 
 
 q = Queue(concurrent * 2)
@@ -233,27 +376,87 @@ for i in range(concurrent):
 	th.start()
 
 try:
-	print (t.bold_bright_cyan("[*] Usage: https://hostname/robots.txt"))
-	print("\n")
-	url = "http://" + hostname + "/robots.txt"
-
-	response = urlopen(Request(url, headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'}))
-
-	if response.code == 200:
-		read = response.read()
-		with open(cwd + "/output/robot1.txt", "wb") as f:
-			f.write(read)
-			f.close()
-		os.system("cat " + cwd + "/output/robot1.txt " + " | grep -i 'allow' " + " | awk '{print $2}' " + " > " + cwd + "/output/robot2.txt")
-		with open(cwd + "/output/robot2.txt", "r") as f:
-			url	= f.read().split()
-			f.close()
-		for i in url:
-			q.put(i.strip())
-		q.join()
-
+    print (t.bold_bright_cyan("[*] Usage: https://hostname/robots.txt"))
+    print("\n")
+    url = "http://" + hostname + "/robots.txt"
+    response = urlopen(Request(url, headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.47 Safari/537.36'}))
+    if response.code == 200:
+        read = response.read()
+        with open("/var/www/html/output/robot1.txt", "wb") as f:
+            f.write(read)
+            f.close()
+            scan_info(5,hostname)
+            os.system("cat /var/www/html/output/robot1.txt " + " | grep -i 'allow' " + " | awk '{print $2}' " + " > " + "/var/www/html/output/Robots.html")
+            with open("/var/www/html/output/Robots.html", "r") as f:
+                url	= f.read().split()
+                f.close()
+            change = cwd + "/input/webscreenshot.py"
+            os.system("python " + change + " 127.0.0.1/output/Robots.html" + " -o " + cwd + "/output/screenshot/"+hostname)
+            print("\n")
+            for i in url:
+                q.put(i.strip())
+            q.join()
 except urllib.error.HTTPError as e:
-	print (t.bold_bright_red("Robots.txt is Not Configured[" + str(e.code) + "]" + ": "),url)
+    print (t.bold_bright_red("Robots.txt is Not Configured[" + str(e.code) + "]" + ": "),url)
+
+
+#Open-Redirection
+print (t.bold_bright_green("""
+====================================================================================
+#                                   Open-Redirection                              #
+====================================================================================
+"""))
+time.sleep(1)
+concurrent = 10
+print (t.bold_bright_cyan("[*] Usage: https://hostname/[Payloadlist]"))
+print("\n")
+def open_redirection():
+	while True:
+		try:
+			word = q.get()
+			test_url = target_url  + word
+			#headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0" }
+			response = requests.get(test_url, allow_redirects=True)
+			res_code(response.status_code,test_url,response.url)
+			q.task_done()
+		except requests.exceptions.ConnectionError as e:
+			q.task_done()
+			pass
+
+
+def res_code(status,url,redirect):
+	try:
+		if status == 200:
+			time.sleep(0.5)
+			print (t.bold_bright_yellow("[+]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "),redirect )
+		else:
+			time.sleep(0.5)
+			print (t.bold_bright_red("[+]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "),redirect )
+
+	except Exception as e:
+		print(e)
+
+q = Queue(concurrent * 2)
+
+for i in range(concurrent):
+	th2 = Thread(target=open_redirection)
+	th2.daemon = True
+	th2.start()
+
+target_url = "http://" + hostname
+
+try:
+	file = []
+	with open(cwd + "/input/open_redirection.txt","r") as wordlist_file:
+		for line in wordlist_file:
+			file.append(line.strip())
+	wordlist_file.close()
+	for line in file:
+		q.put(line)
+	q.join()
+			
+except Exception as e:
+	print(e)
 
 
 #Sub-Domain Finding
@@ -262,14 +465,14 @@ print (t.bold_bright_green("""
 #                                Sub-Domain                                        #
 ====================================================================================
 """))
-time.sleep(5)
+time.sleep(1)
 concurrent = 10
 
 def doWork():
 	while True:
 		try:
 			netloc = q.get()
-			url = "https://" + netloc
+			url = "http://" + netloc
 			status, url = getStatus(url)
 			doSomethingWithResult(status, url)
 			q.task_done()
@@ -286,38 +489,42 @@ def getStatus(ourl):
    except:
        return "No Response Code", ourl
 
+def cname(c_url):
+   try:
+      result = dns.resolver.query(c_url, 'CNAME')
+      for cnameval in result:
+         return ' CNAME:', cnameval.target
+   except:
+       return "error2", c_url
+
+def nmap_fun(url1):
+	
+	IP = socket.gethostbyname(url1)
+
+	os.system("nmap -Pn -F -T4 " + IP + " > " + "/var/www/html/output/nmap/nmap_tcp.txt" )
+	os.system("cat /var/www/html/output/nmap/nmap_tcp.txt | egrep -i 'state|open' > /var/www/html/output/nmap/nmap_tcp1.txt")
+	os.system("""cat /var/www/html/output/nmap/nmap_tcp1.txt | sed 's/[^0-9]*//g' > /var/www/html/output/nmap/nmap_tcp2.txt""")
+	os.system("""cat /var/www/html/output/nmap/nmap_tcp2.txt | sed '/^$/d' > /var/www/html/output/nmap/nmap_tcp3.txt""")
+	os.system("""cat /var/www/html/output/nmap/nmap_tcp3.txt | sed '$!s/$/,/' > /var/www/html/output/nmap/nmap_tcp4.txt""")
+	os.system("""cat /var/www/html/output/nmap/nmap_tcp4.txt | tr -d '\n'  > /var/www/html/output/nmap/nmap_tcp5.txt""")
+
+	with open("/var/www/html/output/nmap/nmap_tcp5.txt", "r")as f:
+		order = f.read()
+		f.close()
+		return "PORT: ", order
+
 def doSomethingWithResult(status, url):
-	global cname
+	url1 = url.replace("http://","")
 	if status == 200:
+		order = nmap_fun(url1)
 		time.sleep(1)
-		print (t.bold_bright_yellow("[+]Status_Code [" + str(status) + "] "  + "  : "), url)
-	elif status == 401:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-	elif status == 403:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
+		print(t.bold_bright_yellow("[+]Status_Code [" + str(status) + "] "  + "  : " + url + " : "),str(order))
 	elif status == 404:
+		c_name = cname(url1)
 		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-	elif status == 429:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-	elif status == 500:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-	elif status == 504:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-	elif status == 522:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-	elif status == 530:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-	else:
-		time.sleep(1)
-		print (t.bold_bright_red("[-]" + str(status) + "    : "), url)
+		print(t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : " + url + " : "), str(c_name))
+	elif(status != 200 and status != 404):
+		pass
     
 q = Queue(concurrent * 2)
 
@@ -334,11 +541,7 @@ try:
   sub1 = data["subdomains"]
 except:
   sub1 = []
-try:
- sub2 = data["domain_siblings"]
-except:
- sub2 = []
-
+sub2 = data["domain_siblings"]
 subdomains = sub1 + sub2
 
 t = Terminal()
@@ -356,7 +559,7 @@ print (t.bold_bright_green("""
 #                                Critical-File Found                              #
 ====================================================================================
 """))
-time.sleep(5)
+time.sleep(1)
 concurrent = 10
 print (t.bold_bright_cyan("[*] Usage: https://hostname/[Wordlist]"))
 print("\n")
@@ -365,26 +568,26 @@ def critical_file_found():
 		try:
 			word = q.get()
 			test_url = target_url + "/" + word
-			headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0" }
-			response = requests.get(test_url,headers)
-			code(response.status_code,test_url)
+			#headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0" }
+			response = requests.get(test_url, allow_redirects=True)
+			code(response.status_code,test_url,response.url)
 			q.task_done()
 		except requests.exceptions.ConnectionError as e:
 			q.task_done()
 			pass
 
 
-def code(status,url):
+def code(status,url,redirect):
 	try:
 		if status == 200:
 			time.sleep(1)
-			print (t.bold_bright_yellow("[+]Status_Code [" + str(status) + "] "  + "  : "), url)
+			print(t.bold_bright_yellow("[+]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "),redirect )
 		elif status == 401:
 			time.sleep(1)
-			print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
+			print(t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "),redirect)
 		elif status == 403:
 			time.sleep(1)
-			print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
+			print(t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : " + url + " --> "), redirect)
 		else:
 			pass
 
@@ -398,70 +601,11 @@ for i in range(concurrent):
 	th2.daemon = True
 	th2.start()
 
-target_url = "https://" + hostname
+target_url = "http://" + hostname
 
 try:
 	file = []
 	with open(cwd + "/input/wordlist.txt","r") as wordlist_file:
-		for line in wordlist_file:
-			file.append(line.strip())
-	wordlist_file.close()
-	for line in file:
-		q.put(line)
-	q.join()
-			
-except Exception as e:
-	print(e)
-
-
-#Open-Redirection
-print (t.bold_bright_green("""
-====================================================================================
-#                                   Open-Redirection                              #
-====================================================================================
-"""))
-time.sleep(5)
-concurrent = 10
-print (t.bold_bright_cyan("[*] Usage: https://hostname/[Payloadlist]"))
-print("\n")
-def open_redirection():
-	while True:
-		try:
-			word = q.get()
-			test_url = target_url  + word
-			headers = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:56.0) Gecko/20100101 Firefox/56.0" }
-			response = requests.get(test_url,headers)
-			res_code(response.status_code,test_url)
-			q.task_done()
-		except requests.exceptions.ConnectionError as e:
-			q.task_done()
-			pass
-
-
-def res_code(status,url):
-	try:
-		if status == 200:
-			time.sleep(1)
-			print (t.bold_bright_yellow("[+]Status_Code [" + str(status) + "] "  + "  : "), url)
-		else:
-			time.sleep(1)
-			print (t.bold_bright_red("[-]Status_Code [" + str(status) + "] "  + "  : "), url)
-
-	except Exception as e:
-		print(e)
-
-q = Queue(concurrent * 2)
-
-for i in range(concurrent):
-	th2 = Thread(target=open_redirection)
-	th2.daemon = True
-	th2.start()
-
-target_url = "https://" + hostname
-
-try:
-	file = []
-	with open(cwd + "/input/open_redirection.txt","r") as wordlist_file:
 		for line in wordlist_file:
 			file.append(line.strip())
 	wordlist_file.close()
@@ -500,9 +644,3 @@ def crawl(url):
 			crawl(link)
 
 crawl(target_url)
-
-
-
-
-
-
