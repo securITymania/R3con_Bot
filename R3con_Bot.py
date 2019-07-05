@@ -13,18 +13,20 @@ from urllib import parse
 from urllib.request import urlopen, Request
 from threading import Thread
 from queue import Queue
+from texttable import Texttable
 from blessings import Terminal
 
 parser = optparse.OptionParser()
 parser.add_option("-d","--domain", dest="hostname", help="Give the domain you want scan without 'https://'")
 parser.add_option("-t","--nmap_tcp", dest="nmap_tcp", help="Nmap TCP Scan type options from [1-4]             1.Fast scan[Top 100 port scan]                      2.Fast scan with service,os & version detection         3.Intense scan with service,os & version detection     4.All port scan with service,os & version detection")
 parser.add_option("-u","--nmap_udp", dest="nmap_udp", help="Nmap UDP Scan type options from [1-4]             1.Fast scan[Top 100 port scan]                      2.Fast scan with service,os & version detection         3.Intense scan with service,os & version detection        4.All port scan with service,os & version detection")
-
+parser.add_option("-s","--subdomain", dest="subdomain", help="To enable the subdomain Crawler by default this is disable mode")
 (options, arguments) = parser.parse_args()
 
 hostname = options.hostname
 nmap_tcp = options.nmap_tcp
 nmap_udp = options.nmap_udp
+subdomain = options.subdomain
 
 t = Terminal()
 
@@ -55,7 +57,7 @@ os.system("clear")
 #Scan Information
 
 def scan_info(module,target_host):
-    modules = ('Whois','SSLScan','dns_enum','Nmap_TCP','Nmap_UDP','Robots.txt')
+    modules = ('Whois','SSLScan','dns_enum','Nmap_TCP','Nmap_UDP','Robots.txt','Wad','searchsploit','secure_response_headers')
     f = open('/var/www/html/output/'+modules[module]+'.html', 'w')
     f.write("<h3>"+modules[module]+ " Scan Result: "+hostname+"</h3>")
     f.close()
@@ -111,20 +113,39 @@ print (t.bold_bright_green("""
 #                           FINGERPRINTING SERVER VERSION INFO                     #
 ====================================================================================
 """))
+
 try:
-	print (t.bold_bright_cyan("[*] Usage: wad -u [Domain]"))
-	cwd = os.getcwd()
-	socket.setdefaulttimeout(60 * 60)
-	os.system("wad -u" + "http://" + hostname + " > " + "/var/www/html/output/wad/wad.txt")
-	print("\n")
-	os.system("""cat /var/www/html/output/wad/wad.txt | egrep '"app":|"ver":'  >  /var/www/html/output/wad/wad1.txt""")
-	os.system("cat /var/www/html/output/wad/wad1.txt")
-	print("\n")
-	change = cwd + "/input/webscreenshot.py"
-	os.system("python " + change + " 127.0.0.1/output/wad/wad.txt" + " -o " + cwd + "/output/screenshot/"+hostname)
-	
+    print (t.bold_bright_cyan("[*] Usage: wad -u [Domain]"))
+    cwd = os.getcwd()
+    socket.setdefaulttimeout(60 * 60)
+    os.system("wad -u" + "http://" + hostname + " -f csv > /var/www/html/output/wad/wad.csv")
+    print("\n")
+    time.sleep(8)
+    
+    f = open("/var/www/html/output/wad/wad.csv","r")
+    a = f.readlines()
+    tt = Texttable()
+    table = []
+    versions = {}
+    tt.set_cols_width([35,35,15,45])
+    for i in a:
+        i = i.split(",",3)
+        versions.update( {i[1] : i[2]} ) 
+        table.append(i)
+    tt.add_rows(table)
+    with open('/var/www/html/output/wad/wad.txt', 'w') as f:
+        print('', tt.draw(), file=f)
+        tt.reset()
+        f.close()
+    os.system("cat /var/www/html/output/wad/wad.txt")
+    scan_info(6,hostname)
+    os.system("cat /var/www/html/output/wad/wad.txt|aha --black --word-wrap >> /var/www/html/output/Wad.html")  
+    print("\n")
+    change = cwd + "/input/webscreenshot.py"
+    os.system("python " + change + " 127.0.0.1/output/Wad.html" + " -o " + cwd + "/output/screenshot/"+hostname)
+    	
 except Exception as e:
-	print(e)
+    print(e)
 
 #Exploit Search
 print (t.bold_bright_green("""
@@ -133,28 +154,19 @@ print (t.bold_bright_green("""
 ====================================================================================
 """))
 print (t.bold_bright_cyan("[*] Usage: searchsploit [(Application) (version)]"))
-os.system("""sed 's/ //g' /var/www/html/output/wad/wad1.txt > /var/www/html/output/wad/wad2.txt""")
-os.system("""sed 's/"app":/ /g; s/"ver":/ /g' /var/www/html/output/wad/wad2.txt > /var/www/html/output/wad/wad3.txt""")
-os.system("""sed -r ':r; s/("[^",]+),([^",]*)/\1 \2/g; tr; s/"//g' /var/www/html/output/wad/wad3.txt  > /var/www/html/output/wad/wad4.txt""")
-os.system("""sed 's/,//' /var/www/html/output/wad/wad4.txt > /var/www/html/output/wad/wad5.txt""")
-os.system("""sed '/^$/d' /var/www/html/output/wad/wad5.txt > /var/www/html/output/wad/wad6.txt""")
-os.system("""awk 'NR%2{printf "%s ",$0;next;}1' /var/www/html/output/wad/wad6.txt > /var/www/html/output/wad/wad7.txt""")
-os.system("""sed 's/.*null*/ /' /var/www/html/output/wad/wad7.txt > /var/www/html/output/wad/wad8.txt""")
 
-with open("/var/www/html/output/wad/wad8.txt", "r") as f:
-	search =[i.strip() for i in f.read().split("\n")]
-	f.close()
-
-for i in search:
-	if i != '':
-		print("\n")
-		print (t.bold_bright_red("Exploit Searching For: "),i)
-		print("\n")
-		os.system("searchsploit " + i)
-
-if i == '':
-    print("\n")
-    print(t.bold_bright_red("No Application version were found with wad module "))
+os.system("echo '' > /var/www/html/output/searchsploit.txt")
+for key,val in versions.items():
+    if val is not "":
+        cmd = 'searchsploit '+key+" "+val+" >> /var/www/html/output/searchsploit.txt"
+        os.system(cmd)
+    else:
+        pass
+scan_info(7,hostname)
+os.system("cat /var/www/html/output/searchsploit.txt")
+os.system("cat /var/www/html/output/searchsploit.txt|aha  --word-wrap >> /var/www/html/output/searchsploit.html")
+change = cwd + "/input/webscreenshot.py"
+os.system("python " + change + " 127.0.0.1/output/searchsploit.html" + " -o " + cwd + "/output/screenshot/"+hostname)
 
 
 #Secure Response Headers Missing Scan
@@ -164,6 +176,16 @@ print (t.bold_bright_green("""
 ====================================================================================
 """))
 print (t.bold_bright_cyan("[*] Usage: https://securityheaders.com/?q=[Domain]&followRedirects=on"))
+banner = t.bold_bright_green("""
+====================================================================================
+#                                  RESPONSE HEADERS INFO                           #
+====================================================================================
+""")
+
+with open('/var/www/html/output/response.txt', 'w') as f:
+    print(banner, file=f)
+    f.close()
+
 print("\n")
 
 cwd = os.getcwd()
@@ -193,10 +215,13 @@ try:
     host_headers = []
 
     for key,val in headers.items():
-       print('{t.green}{:35} : {t.white}{}'.format(key, val, t=t))
-       #print (t.bold_bright_green("[+] "+ response_headers))
-       host_headers.append(key)
-
+        if key != 'Date' and key != 'Link' and key != 'X-UA-Compatible' and key != 'Content-language' and key != 'Expires' and key != 'Vary' and key != 'Cache-Tags' and key != 'Last-Modified' and key != 'ETag' and key != 'Transfer-Encoding' and key != 'Connection' and key != 'Accept-Ranges' and key!= 'Content-Encoding':
+            domainheaders = '{t.green}{:35} :{t.white}{}'.format(key, val, t=t)
+            print('{t.green}{:35} : {t.white}{}'.format(key, val, t=t))
+            host_headers.append(key)
+            with open('/var/www/html/output/response.txt', 'a') as f:
+                print(domainheaders, file=f)
+                f.close()
 
     if 'X-Frame-Options' not in headers:
         print("\n")
@@ -206,7 +231,7 @@ try:
         print (t.bold_bright_green("[+] X-Frame-Options                  :  ") + ("Website is vulnerable! to clickjacking.File has been saved to /var/www/output/clickjacking.html"))
         print("\n")
         change = cwd + "/input/webscreenshot.py"
-        os.system("python " + change + " 127.0.0.1/output/clickjacking.html" + " -o " + cwd + "/output/screenshot" + hostname)
+        os.system("python " + change + " 127.0.0.1/output/clickjacking.html" + " -o " + cwd + "/output/screenshot/" + hostname)
 
    
     print("\n")
@@ -228,15 +253,28 @@ try:
     except Exception as e:
         print(e)
 
-        
+    with open('/var/www/html/output/response.txt', 'a') as f:
+        print("\n\n", file=f)
 
     secure_response_headers = ['Strict-Transport-Security', 'Expect-CT', 'X-Frame-Options', 'X-XSS-Protection', 'Cache-Control', 'Pragma' ,'Content-Security-Policy', 'Set-Cookie']
     print("\n")
-    print(t.bold_bright_yellow("******* Missing Response Headers *******"))
+    banner2 = t.bold_bright_yellow("******* Missing Response Headers *******")
+    print(t.bold_bright_yellow("******* Missing Response Headers *******\n"))
     print("\n")
+    with open('/var/www/html/output/response.txt', 'a') as f:
+        print(banner2, file=f)
+
     for i in secure_response_headers:
         if i not in host_headers:
-            print(t.bold_bright_red("[-] " + i ))
+            missings = '{t.red}{}'.format(i, t=t)
+            print(t.bold_bright_red("[-] "+i))
+            with open('/var/www/html/output/response.txt', 'a') as f:
+                print(missings, file=f)
+    scan_info(8,hostname)
+    os.system("cat /var/www/html/output/response.txt|aha --word-wrap --black >> /var/www/html/output/secure_response_headers.html")
+    print("\n")
+    change = cwd + "/input/webscreenshot.py"
+    os.system("python " + change + " 127.0.0.1/output/secure_response_headers.html" + " -o " + cwd + "/output/screenshot/"+hostname)
 
 except Exception as e:
     print(e)
@@ -468,6 +506,7 @@ print (t.bold_bright_green("""
 time.sleep(1)
 concurrent = 10
 
+
 def doWork():
 	while True:
 		try:
@@ -532,26 +571,30 @@ for i in range(concurrent):
 	th1 = Thread(target=doWork)
 	th1.daemon = True
 	th1.start()
+def subdomain_crawler(hostname):
+	url = 'https://www.virustotal.com/vtapi/v2/domain/report'
+	params = {'apikey': '83f01852d8f7dbd65b2a2a31e43f2b79a4f91ac7f14f85ab9e1fb9392c51c3ea', 'domain': hostname }
+	response = requests.get(url, params=params)
+	data = response.json()
+	try:
+		sub1 = data["subdomains"]
+	except:
+		sub1 = []
+	sub2 = data["domain_siblings"]
+	subdomains = sub1 + sub2
+	t = Terminal()
+	try:
+		for url in subdomains:
+			q.put(url.strip())
+		q.join()
+	except:
+		pass
 
-url = 'https://www.virustotal.com/vtapi/v2/domain/report'
-params = {'apikey': '83f01852d8f7dbd65b2a2a31e43f2b79a4f91ac7f14f85ab9e1fb9392c51c3ea', 'domain': hostname }
-response = requests.get(url, params=params)
-data = response.json()
-try:
-  sub1 = data["subdomains"]
-except:
-  sub1 = []
-sub2 = data["domain_siblings"]
-subdomains = sub1 + sub2
+if  subdomain == None:
+	print(t.bold_bright_yellow("*******subdomain crawler is disabled*********"))
+else:
+	subdomain_crawler(hostname)
 
-t = Terminal()
-
-try:
-	for url in subdomains:
-		q.put(url.strip())
-	q.join()
-except:
-	pass
 
 #Critical-File Finding
 print (t.bold_bright_green("""
