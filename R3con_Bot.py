@@ -246,7 +246,7 @@ try:
     host_headers = []
 
     for key,val in headers.items():
-        if key != 'Date' and key != 'Link' and key != 'X-UA-Compatible' and key != 'Content-language' and key != 'Expires' and key != 'Vary' and key != 'Cache-Tags' and key != 'Last-Modified' and key != 'ETag' and key != 'Transfer-Encoding' and key != 'Connection' and key != 'Accept-Ranges' and key!= 'Content-Encoding':
+        if key != 'Date' and key != 'Link' and key != 'X-UA-Compatible' and key != 'Content-language' and key != 'Expires' and key != 'Vary' and key != 'Cache-Tags' and key != 'Last-Modified' and key != 'ETag' and key != 'Transfer-Encoding' and key != 'Connection' and key != 'Accept-Ranges' and key!= 'Content-Encoding' and key != 'Content-Language' and key != 'Content-Type':
             domainheaders = '{t.green}{:35} :{t.white}{}'.format(key, val, t=t)
             print('{t.bold_bright_green}{:35} :  {t.bold_bright_white}{}'.format(key, val, t=t))
             host_headers.append(key)
