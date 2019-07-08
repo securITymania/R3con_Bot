@@ -78,6 +78,7 @@ time.sleep(3)
 done = True
 
 os.system("service apache2 start")
+os.system("mkdir /var/www/html/output/wad")
 os.system("mkdir /var/www/html/output")
 os.system("mkdir /var/www/html/output/nmap")
 os.system("clear")
