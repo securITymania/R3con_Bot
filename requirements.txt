@@ -1,4 +1,4 @@
 blessings==1.7
-requests==2.21.0
+requests==2.31.0
 dnspython==1.16.0
 texttable
